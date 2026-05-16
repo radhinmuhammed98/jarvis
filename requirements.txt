@@ -1,0 +1,8 @@
+requests
+SpeechRecognition
+pyttsx3
+PyAudio
+edge-tts
+python-dotenv
+vosk
+sounddevice

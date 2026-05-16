@@ -24,21 +24,25 @@ Important:
 - If unsure, return CHAT.
 
 Important for Device Control:
+- AI MUST NEVER invent rooms, devices, endpoints, pins, or colors. You are strictly restricted to the devices provided in the context or previously mentioned.
+- If the user asks you to control a device that you do not know, or asks you to remember a new device, you MUST use the ADD_DEVICE action or tell them you don't know it.
 - To control a single device, use: {"action": "ESP32_COMMAND", "device": "light", "command": "on"}
-- To control multiple devices or "ALL_LIGHTS", use: {"action": "BATCH_DEVICE_COMMAND", "devices": ["light", "blue_light"], "command": "on", "delay": 0}
+- To control multiple devices or groups, use: {"action": "BATCH_DEVICE_COMMAND", "devices": ["light", "blue_light"], "command": "on", "delay": 0}
 - To execute a sequence (one-by-one with gap), use: {"action": "BATCH_DEVICE_COMMAND", "devices": "ALL_LIGHTS", "command": "on", "delay": 1}
-- NEVER output raw user phrases as device names. ONLY use valid device IDs (e.g., "light", "blue_light", "red1", "red2", "fan", "ALL_LIGHTS") or "pin_X".
-- To control a specific GPIO pin, use: "device": "pin_X" (e.g., "pin_12").
-- To assign a name to a pin (e.g., "pin 4 is fan"), use: {"action": "ASSIGN_PIN", "device_name": "fan", "pin": 4}.
+- To add a new device to memory, use: {"action": "ADD_DEVICE", "device_id": "red1", "display_name": "red one", "type": "light", "color": "red", "endpoint": "red1", "aliases": ["red one", "first red"]}
+- If the user says "remember there are two red lights", DO NOT invent endpoints! Ask the user: "What are their ESP32 endpoints?" using a CHAT action.
+- To list all known devices, use: {"action": "LIST_DEVICES"}
+- To delete a known device, use: {"action": "DELETE_DEVICE", "device_id": "red1"}
+- To control a specific GPIO pin temporarily, use: "device": "pin_X" (e.g., "pin_12").
 - Use "command": "on", "off", or "status".
 
 Allowed actions:
-OPEN_APP, SEARCH_WEB, GET_TIME, SYSTEM_INFO, ESP32_COMMAND, BATCH_DEVICE_COMMAND, ASSIGN_PIN, EXIT, CHAT, REMEMBER, RECALL, FORGET, LIST_MEMORY, CLEAR_CONVERSATION.
+OPEN_APP, SEARCH_WEB, GET_TIME, SYSTEM_INFO, ESP32_COMMAND, BATCH_DEVICE_COMMAND, DEVICE_STATUS_QUERY, SCENE_COMMAND, ADD_DEVICE, LIST_DEVICES, DELETE_DEVICE, ASSIGN_PIN, EXIT, CHAT, REMEMBER, RECALL, FORGET, LIST_MEMORY, CLEAR_CONVERSATION.
 
 Output examples:
-{"action":"BATCH_DEVICE_COMMAND","devices":"ALL_LIGHTS","command":"on","delay":0}
+{"action":"ADD_DEVICE","device_id":"red1","display_name":"red one","type":"light","color":"red","endpoint":"red1","aliases":["red one", "first red"]}
 {"action":"BATCH_DEVICE_COMMAND","devices":["red1","blue"],"command":"off","delay":1}
-{"action":"ASSIGN_PIN","device_name":"fan","pin":4}
+{"action":"DELETE_DEVICE","device_id":"red1"}
 {"action":"CHAT","message":"hyy"}
 {"action":"CHAT","message":"haha"}
 {"action":"CHAT","message":"whats ur name"}
@@ -101,7 +105,7 @@ def parse_with_ai(user_input: str) -> dict:
             return {"action": "CHAT", "message": user_input}
             
         # 7. If action is not in allowed actions
-        allowed_actions = ["OPEN_APP", "SEARCH_WEB", "GET_TIME", "SYSTEM_INFO", "ESP32_COMMAND", "BATCH_DEVICE_COMMAND", "ASSIGN_PIN", "EXIT", "CHAT", "REMEMBER", "RECALL", "FORGET", "LIST_MEMORY", "CLEAR_CONVERSATION"]
+        allowed_actions = ["OPEN_APP", "SEARCH_WEB", "GET_TIME", "SYSTEM_INFO", "ESP32_COMMAND", "BATCH_DEVICE_COMMAND", "DEVICE_STATUS_QUERY", "SCENE_COMMAND", "ADD_DEVICE", "LIST_DEVICES", "DELETE_DEVICE", "ASSIGN_PIN", "EXIT", "CHAT", "REMEMBER", "RECALL", "FORGET", "LIST_MEMORY", "CLEAR_CONVERSATION"]
         if parsed_json["action"] not in allowed_actions:
             logger.debug(f"AI returned unknown action: {parsed_json['action']}")
             return {"action": "CHAT", "message": user_input}

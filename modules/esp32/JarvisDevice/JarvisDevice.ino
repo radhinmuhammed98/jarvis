@@ -1,188 +1,122 @@
 #include <WiFi.h>
 #include <WebServer.h>
 
-// Replace with your actual network credentials
+// WiFi Credentials
 const char* ssid = "Ismail-Kv";
 const char* password = "RaniagencieS";
 
-// Pins
+// Pin Definitions
 const int PIN_RED1 = 2;
 const int PIN_RED2 = 4;
 const int PIN_BLUE = 5;
 
-// States
-bool isRed1On = false;
-bool isRed2On = false;
-bool isBlueOn = false;
-
-// Create WebServer object on port 80
 WebServer server(80);
 
-void setLight(int pin, bool state) {
-  digitalWrite(pin, state ? HIGH : LOW);
+// Helper to send JSON responses
+void sendJsonResponse(int code, String message, bool success = true) {
+  String json = "{\"success\":" + String(success ? "true" : "false") + ",\"message\":\"" + message + "\"}";
+  server.send(code, "application/json", json);
 }
 
 void setup() {
   Serial.begin(115200);
-  delay(100);
-
-  // Initialize the light pins
+  
   pinMode(PIN_RED1, OUTPUT);
   pinMode(PIN_RED2, OUTPUT);
   pinMode(PIN_BLUE, OUTPUT);
   
-  setLight(PIN_RED1, false);
-  setLight(PIN_RED2, false);
-  setLight(PIN_BLUE, false);
+  digitalWrite(PIN_RED1, LOW);
+  digitalWrite(PIN_RED2, LOW);
+  digitalWrite(PIN_BLUE, LOW);
 
-  // Connect to Wi-Fi
-  Serial.println("\nConnecting to Wi-Fi...");
   WiFi.begin(ssid, password);
-
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
     Serial.print(".");
   }
 
-  Serial.println("\nWi-Fi connected!");
-  Serial.print("ESP32 IP Address: ");
-  Serial.println(WiFi.localIP());
+  Serial.println("\nWiFi Connected. IP: " + WiFi.localIP().toString());
 
-  // Base route
+  // Root / Ping
   server.on("/", HTTP_GET, []() {
-    server.send(200, "text/plain", "ESP32 Jarvis Multi-Light device online");
+    sendJsonResponse(200, "Jarvis Hardware v2.0 Online");
   });
 
-  // RED 1 Routes
-  server.on("/red1/on", HTTP_POST, []() {
-    setLight(PIN_RED1, true);
-    isRed1On = true;
-    server.send(200, "text/plain", "Red Light 1 turned on");
-  });
-  server.on("/red1/off", HTTP_POST, []() {
-    setLight(PIN_RED1, false);
-    isRed1On = false;
-    server.send(200, "text/plain", "Red Light 1 turned off");
-  });
-  server.on("/red1/status", HTTP_GET, []() {
-    server.send(200, "text/plain", isRed1On ? "Red 1 is on" : "Red 1 is off");
-  });
-
-  // RED 2 Routes
-  server.on("/red2/on", HTTP_POST, []() {
-    setLight(PIN_RED2, true);
-    isRed2On = true;
-    server.send(200, "text/plain", "Red Light 2 turned on");
-  });
-  server.on("/red2/off", HTTP_POST, []() {
-    setLight(PIN_RED2, false);
-    isRed2On = false;
-    server.send(200, "text/plain", "Red Light 2 turned off");
-  });
-  server.on("/red2/status", HTTP_GET, []() {
-    server.send(200, "text/plain", isRed2On ? "Red 2 is on" : "Red 2 is off");
-  });
-
-  // BLUE Routes
-  server.on("/blue/on", HTTP_POST, []() {
-    setLight(PIN_BLUE, true);
-    isBlueOn = true;
-    server.send(200, "text/plain", "Blue Light turned on");
-  });
-  server.on("/blue/off", HTTP_POST, []() {
-    setLight(PIN_BLUE, false);
-    isBlueOn = false;
-    server.send(200, "text/plain", "Blue Light turned off");
-  });
-  server.on("/blue/status", HTTP_GET, []() {
-    server.send(200, "text/plain", isBlueOn ? "Blue is on" : "Blue is off");
-  });
-
-  // ALL RED LIGHTS Routes
-  server.on("/red/on", HTTP_POST, []() {
-    setLight(PIN_RED1, true);
-    setLight(PIN_RED2, true);
-    isRed1On = isRed2On = true;
-    server.send(200, "text/plain", "Both red lights turned on");
-  });
-  server.on("/red/off", HTTP_POST, []() {
-    setLight(PIN_RED1, false);
-    setLight(PIN_RED2, false);
-    isRed1On = isRed2On = false;
-    server.send(200, "text/plain", "Both red lights turned off");
-  });
-  server.on("/red/status", HTTP_GET, []() {
-    String res = (isRed1On && isRed2On) ? "Both reds are on" : (isRed1On || isRed2On ? "One red is on" : "Reds are off");
-    server.send(200, "text/plain", res);
-  });
-
-  // ALL LIGHTS Routes
-  server.on("/all/on", HTTP_POST, []() {
-    setLight(PIN_RED1, true);
-    setLight(PIN_RED2, true);
-    setLight(PIN_BLUE, true);
-    isRed1On = isRed2On = isBlueOn = true;
-    server.send(200, "text/plain", "All lights turned on");
-  });
-  server.on("/all/off", HTTP_POST, []() {
-    setLight(PIN_RED1, false);
-    setLight(PIN_RED2, false);
-    setLight(PIN_BLUE, false);
-    isRed1On = isRed2On = isBlueOn = false;
-    server.send(200, "text/plain", "All lights turned off");
-  });
-  server.on("/all/status", HTTP_GET, []() {
-    String res = String("Red1: ") + (isRed1On?"ON":"OFF") + ", Red2: " + (isRed2On?"ON":"OFF") + ", Blue: " + (isBlueOn?"ON":"OFF");
-    server.send(200, "text/plain", res);
-  });
-
-  // Legacy light route mapping to all
-  server.on("/light/status", HTTP_GET, []() {
-    String res = String("All system lights: ") + (isRed1On && isRed2On && isBlueOn ? "ALL ON" : "Mixed State");
-    server.send(200, "text/plain", res);
-  });
-
-  // Diagnostic Blink Test
-  server.on("/test", HTTP_GET, []() {
-    server.send(200, "text/plain", "Starting Blink Test on Pins 2, 4, 5...");
-    int pins[] = {PIN_RED1, PIN_RED2, PIN_BLUE};
-    for(int i=0; i<3; i++) {
-      setLight(pins[i], true);
-      delay(500);
-      setLight(pins[i], false);
-      delay(500);
+  // Dynamic Control Route (POST /control?dev=red1&state=on)
+  server.on("/control", HTTP_POST, []() {
+    if (!server.hasArg("dev") || !server.hasArg("state")) {
+      sendJsonResponse(400, "Missing dev or state args", false);
+      return;
     }
-  });
+    
+    String dev = server.arg("dev");
+    bool state = (server.arg("state") == "on");
+    int targetPin = -1;
 
-  // Pin Scanner / Dynamic Control
-  server.on("/on", HTTP_GET, []() {
-    if (server.hasArg("p")) {
-      int p = server.arg("p").toInt();
-      pinMode(p, OUTPUT);
-      digitalWrite(p, HIGH);
-      server.send(200, "text/plain", "Pin " + String(p) + " turned ON");
+    if (dev == "red1") targetPin = PIN_RED1;
+    else if (dev == "red2") targetPin = PIN_RED2;
+    else if (dev == "blue") targetPin = PIN_BLUE;
+
+    if (targetPin != -1) {
+      digitalWrite(targetPin, state ? HIGH : LOW);
+      sendJsonResponse(200, dev + " turned " + (state ? "on" : "off"));
     } else {
-      server.send(400, "text/plain", "Missing 'p' argument");
+      sendJsonResponse(404, "Unknown device ID", false);
     }
   });
 
-  server.on("/off", HTTP_GET, []() {
-    if (server.hasArg("p")) {
-      int p = server.arg("p").toInt();
-      pinMode(p, OUTPUT);
-      digitalWrite(p, LOW);
-      server.send(200, "text/plain", "Pin " + String(p) + " turned OFF");
-    } else {
-      server.send(400, "text/plain", "Missing 'p' argument");
-    }
+  // Individual Legacy Routes (for backward compatibility)
+  auto handleLight = [](int pin, String name, bool state) {
+    digitalWrite(pin, state ? HIGH : LOW);
+    sendJsonResponse(200, name + " turned " + (state ? "on" : "off"));
+  };
+
+  server.on("/red1/on", HTTP_POST, [=]() { handleLight(PIN_RED1, "Red 1", true); });
+  server.on("/red1/off", HTTP_POST, [=]() { handleLight(PIN_RED1, "Red 1", false); });
+  server.on("/red2/on", HTTP_POST, [=]() { handleLight(PIN_RED2, "Red 2", true); });
+  server.on("/red2/off", HTTP_POST, [=]() { handleLight(PIN_RED2, "Red 2", false); });
+  server.on("/blue/on", HTTP_POST, [=]() { handleLight(PIN_BLUE, "Blue", true); });
+  server.on("/blue/off", HTTP_POST, [=]() { handleLight(PIN_BLUE, "Blue", false); });
+
+  // Group Routes
+  server.on("/all/on", HTTP_POST, [=]() {
+    digitalWrite(PIN_RED1, HIGH); digitalWrite(PIN_RED2, HIGH); digitalWrite(PIN_BLUE, HIGH);
+    sendJsonResponse(200, "All lights on");
+  });
+  server.on("/all/off", HTTP_POST, [=]() {
+    digitalWrite(PIN_RED1, LOW); digitalWrite(PIN_RED2, LOW); digitalWrite(PIN_BLUE, LOW);
+    sendJsonResponse(200, "All lights off");
   });
 
-  server.onNotFound([]() {
-    server.send(404, "text/plain", "Not Found");
+  // Legacy Manual Routes (for user curl scripts)
+  server.on("/light/on", HTTP_POST, [=]() {
+    digitalWrite(PIN_RED1, HIGH); digitalWrite(PIN_RED2, HIGH); digitalWrite(PIN_BLUE, HIGH);
+    sendJsonResponse(200, "All lights turned on (Legacy)");
+  });
+  server.on("/light/off", HTTP_POST, [=]() {
+    digitalWrite(PIN_RED1, LOW); digitalWrite(PIN_RED2, LOW); digitalWrite(PIN_BLUE, LOW);
+    sendJsonResponse(200, "All lights turned off (Legacy)");
+  });
+  server.on("/blue_light/on", HTTP_POST, [=]() {
+    digitalWrite(PIN_BLUE, HIGH);
+    sendJsonResponse(200, "Blue light turned on (Legacy)");
+  });
+  server.on("/blue_light/off", HTTP_POST, [=]() {
+    digitalWrite(PIN_BLUE, LOW);
+    sendJsonResponse(200, "Blue light turned off (Legacy)");
+  });
+
+  // Unified Status
+  server.on("/status", HTTP_GET, []() {
+    String json = "{";
+    json += "\"red1\":\"" + String(digitalRead(PIN_RED1) ? "on" : "off") + "\",";
+    json += "\"red2\":\"" + String(digitalRead(PIN_RED2) ? "on" : "off") + "\",";
+    json += "\"blue\":\"" + String(digitalRead(PIN_BLUE) ? "on" : "off") + "\"";
+    json += "}";
+    server.send(200, "application/json", json);
   });
 
   server.begin();
-  Serial.println("HTTP Server started");
 }
 
 void loop() {

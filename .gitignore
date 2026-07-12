@@ -16,3 +16,6 @@ test.mp3
 build/
 dist/
 *.log
+chroma_db/
+modules/skills/*.py
+modules/skills/*.json

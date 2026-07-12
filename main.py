@@ -42,9 +42,11 @@ class Jarvis:
         from core.memory import init_memory
         from core.device_memory import init_device_memory
         from core.control_context import init_control_context
+        from core.semantic_memory import init_semantic_memory
         init_memory()
         init_device_memory()
         init_control_context()
+        init_semantic_memory()
         
         from core.conversation import load_history_from_db
         load_history_from_db(limit=20)

@@ -7,3 +7,5 @@ python-dotenv
 vosk
 sounddevice
 schedule
+chromadb
+sentence-transformers

@@ -217,10 +217,20 @@ class CommandExecutor:
 
     def handle_chat(self, intent_data: dict) -> str:
         from core.ai_chat import chat_with_ai
+        from core.semantic_memory import add_memory
+
         message = intent_data.get("message", "")
         if not message:
             return "I'm listening. How can I help?"
-        return chat_with_ai(message)
+
+        response = chat_with_ai(message)
+
+        # Save interesting conversation exchanges to long-term memory
+        # We only save if the message is substantial enough to be a memory
+        if len(message) > 15:
+            add_memory(f"User said: '{message}'. Jarvis replied: '{response}'", category="conversation")
+
+        return response
 
     def handle_chat_local(self, intent_data: dict) -> str:
         return intent_data.get("response", "I understood you.")
@@ -277,6 +287,8 @@ class CommandExecutor:
 
     def handle_remember(self, intent_data: dict) -> str:
         from core.memory import remember, normalize_key, denormalize_key
+        from core.semantic_memory import add_memory
+
         key = intent_data.get("key", "")
         value = intent_data.get("value", "")
         category = intent_data.get("category", "general")
@@ -284,7 +296,12 @@ class CommandExecutor:
         if not key or not value:
             return "I need both a key and a value to remember something."
             
+        # Save to exact-match memory (SQLite)
         success = remember(key, value, category)
+
+        # Also save to semantic memory (ChromaDB)
+        add_memory(f"Fact: {key} is {value}", category="fact")
+
         if success:
             display_key = denormalize_key(normalize_key(key))
             return f"Got it. I'll remember that {display_key} is {value}."

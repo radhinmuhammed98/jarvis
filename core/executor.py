@@ -41,6 +41,7 @@ class CommandExecutor:
             "CHAT_LOCAL": self.handle_chat_local,
             "DEVELOPER_TASK": self.handle_developer_task,
             "AUTONOMOUS_TASK": self.handle_autonomous_task,
+            "FLASH_FIRMWARE": self.handle_flash_firmware,
             "REMEMBER": self.handle_remember,
             "RECALL": self.handle_recall,
             "FORGET": self.handle_forget,
@@ -820,6 +821,13 @@ class CommandExecutor:
         if not task:
             return "What autonomous task would you like me to perform?"
         return execute_autonomous_task(task)
+
+    def handle_flash_firmware(self, intent_data: dict) -> str:
+        from core.firmware_agent import flash_firmware
+        request = intent_data.get("request") or intent_data.get("task", "")
+        if not request:
+            return "What would you like the ESP32 to do?"
+        return flash_firmware(request)
 
     def handle_unknown(self, intent_data: dict) -> str:
         return "I'm not sure how to help with that yet."

@@ -37,10 +37,13 @@ Important for Device Control:
 - Use "command": "on", "off", or "status".
 
 Important for Autonomous Tasks:
-- If the user asks Jarvis to autonomously figure out a task, install software, write complex code on the machine, or "do whatever it takes" to achieve an objective (e.g. "make a horror lighting", "open instagram and chat"), you must use AUTONOMOUS_TASK.
+- If the user asks Jarvis to autonomously figure out a task, install software, write complex code on the machine, or "do whatever it takes" to achieve an objective (e.g. "open instagram and chat"), you must use AUTONOMOUS_TASK.
+
+Important for Firmware:
+- If the user explicitly asks to write code for the ESP32, upload code to the ESP32, flash firmware, or mentions "make a horror lighting" on the hardware, use FLASH_FIRMWARE.
 
 Allowed actions:
-OPEN_APP, SEARCH_WEB, GET_TIME, SYSTEM_INFO, ESP32_COMMAND, BATCH_DEVICE_COMMAND, DEVICE_STATUS_QUERY, SCENE_COMMAND, ADD_DEVICE, LIST_DEVICES, DELETE_DEVICE, ASSIGN_PIN, EXIT, CHAT, REMEMBER, RECALL, FORGET, LIST_MEMORY, CLEAR_CONVERSATION, AUTONOMOUS_TASK.
+OPEN_APP, SEARCH_WEB, GET_TIME, SYSTEM_INFO, ESP32_COMMAND, BATCH_DEVICE_COMMAND, DEVICE_STATUS_QUERY, SCENE_COMMAND, ADD_DEVICE, LIST_DEVICES, DELETE_DEVICE, ASSIGN_PIN, EXIT, CHAT, REMEMBER, RECALL, FORGET, LIST_MEMORY, CLEAR_CONVERSATION, AUTONOMOUS_TASK, FLASH_FIRMWARE.
 
 Output examples:
 {"action":"AUTONOMOUS_TASK","task":"figure out how to scrape instagram"}
@@ -109,7 +112,7 @@ def parse_with_ai(user_input: str) -> dict:
             return {"action": "CHAT", "message": user_input}
             
         # 7. If action is not in allowed actions
-        allowed_actions = ["OPEN_APP", "SEARCH_WEB", "GET_TIME", "SYSTEM_INFO", "ESP32_COMMAND", "BATCH_DEVICE_COMMAND", "DEVICE_STATUS_QUERY", "SCENE_COMMAND", "ADD_DEVICE", "LIST_DEVICES", "DELETE_DEVICE", "ASSIGN_PIN", "EXIT", "CHAT", "REMEMBER", "RECALL", "FORGET", "LIST_MEMORY", "CLEAR_CONVERSATION", "AUTONOMOUS_TASK"]
+        allowed_actions = ["OPEN_APP", "SEARCH_WEB", "GET_TIME", "SYSTEM_INFO", "ESP32_COMMAND", "BATCH_DEVICE_COMMAND", "DEVICE_STATUS_QUERY", "SCENE_COMMAND", "ADD_DEVICE", "LIST_DEVICES", "DELETE_DEVICE", "ASSIGN_PIN", "EXIT", "CHAT", "REMEMBER", "RECALL", "FORGET", "LIST_MEMORY", "CLEAR_CONVERSATION", "AUTONOMOUS_TASK", "FLASH_FIRMWARE"]
         if parsed_json["action"] not in allowed_actions:
             logger.debug(f"AI returned unknown action: {parsed_json['action']}")
             return {"action": "CHAT", "message": user_input}

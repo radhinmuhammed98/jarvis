@@ -381,6 +381,14 @@ class IntentParser:
         if any(p in text_lower for p in AUTO_PHRASES):
             return {"action": "AUTONOMOUS_TASK", "task": text}
 
+        # Firmware Flashing Tasks
+        FIRMWARE_PHRASES = [
+            "flash the esp32", "upload code to esp32", "write firmware",
+            "make a horror lighting", "upload code and", "flash firmware"
+        ]
+        if any(p in text_lower for p in FIRMWARE_PHRASES):
+            return {"action": "FLASH_FIRMWARE", "request": text}
+
         # Local small-talk handling
         if text_lower in ["hi", "hii", "hey", "heyy", "hyy", "hello", "yo", "bro"]:
             return {"action": "CHAT_LOCAL", "response": "Hello Radhin. How can I help?"}

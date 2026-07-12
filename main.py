@@ -49,6 +49,9 @@ class Jarvis:
         from core.conversation import load_history_from_db
         load_history_from_db(limit=20)
         
+        from core.scheduler import start_scheduler
+        start_scheduler()
+
         self.parser = IntentParser()
         self.executor = CommandExecutor()
         
@@ -225,6 +228,8 @@ class Jarvis:
 
         print()
         logger.info("Shutting down Jarvis...")
+        from core.scheduler import stop_scheduler
+        stop_scheduler()
 
 
 if __name__ == "__main__":

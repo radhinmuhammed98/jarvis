@@ -389,6 +389,13 @@ class IntentParser:
         if any(p in text_lower for p in FIRMWARE_PHRASES):
             return {"action": "FLASH_FIRMWARE", "request": text}
 
+        # The AI intent parser is better suited for scheduling requests due to complex nested intent extraction
+        if "every" in text_lower or "in " in text_lower or "schedule" in text_lower:
+            from core.config import USE_AI_INTENT
+            if USE_AI_INTENT:
+                from core.ai_intent_parser import parse_with_ai
+                return parse_with_ai(text)
+
         # Local small-talk handling
         if text_lower in ["hi", "hii", "hey", "heyy", "hyy", "hello", "yo", "bro"]:
             return {"action": "CHAT_LOCAL", "response": "Hello Radhin. How can I help?"}

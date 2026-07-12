@@ -6,3 +6,4 @@ edge-tts
 python-dotenv
 vosk
 sounddevice
+schedule

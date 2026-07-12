@@ -43,6 +43,7 @@ class CommandExecutor:
             "AUTONOMOUS_TASK": self.handle_autonomous_task,
             "FLASH_FIRMWARE": self.handle_flash_firmware,
             "EXECUTE_SKILL": self.handle_execute_skill,
+            "SCHEDULE_TASK": self.handle_schedule_task,
             "REMEMBER": self.handle_remember,
             "RECALL": self.handle_recall,
             "FORGET": self.handle_forget,
@@ -837,6 +838,31 @@ class CommandExecutor:
         if not skill_name:
             return "Which skill should I execute?"
         return execute_skill(skill_name, args)
+
+    def handle_schedule_task(self, intent_data: dict) -> str:
+        from core.scheduler import schedule_task
+        interval = intent_data.get("interval", 1)
+        unit = intent_data.get("unit", "minutes")
+        run_once = intent_data.get("run_once", False)
+        nested_intent = intent_data.get("nested_intent")
+
+        if not nested_intent:
+            return "I need to know what task you want me to schedule."
+
+        def job_wrapper():
+            # Run the executor on the nested intent
+            logger.info(f"Running scheduled job: {nested_intent.get('action')}")
+            try:
+                self.execute(nested_intent)
+            except Exception as e:
+                logger.error(f"Scheduled job failed: {e}")
+
+        success = schedule_task(job_wrapper, interval, unit, run_once)
+
+        if success:
+            mode = "once" if run_once else "recurring"
+            return f"Scheduled task: {nested_intent.get('action')} every {interval} {unit} ({mode})."
+        return "I couldn't understand the scheduling parameters."
 
     def handle_unknown(self, intent_data: dict) -> str:
         return "I'm not sure how to help with that yet."

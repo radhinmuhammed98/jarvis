@@ -40,6 +40,7 @@ class CommandExecutor:
             "CHAT": self.handle_chat,
             "CHAT_LOCAL": self.handle_chat_local,
             "DEVELOPER_TASK": self.handle_developer_task,
+            "AUTONOMOUS_TASK": self.handle_autonomous_task,
             "REMEMBER": self.handle_remember,
             "RECALL": self.handle_recall,
             "FORGET": self.handle_forget,
@@ -812,6 +813,13 @@ class CommandExecutor:
         # This might take a while, so we could potentially return a preliminary message
         # But for now, we block and return the result.
         return run_developer_task(task)
+
+    def handle_autonomous_task(self, intent_data: dict) -> str:
+        from core.autonomous_agent import execute_autonomous_task
+        task = intent_data.get("task", "")
+        if not task:
+            return "What autonomous task would you like me to perform?"
+        return execute_autonomous_task(task)
 
     def handle_unknown(self, intent_data: dict) -> str:
         return "I'm not sure how to help with that yet."

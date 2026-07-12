@@ -36,10 +36,14 @@ Important for Device Control:
 - To control a specific GPIO pin temporarily, use: "device": "pin_X" (e.g., "pin_12").
 - Use "command": "on", "off", or "status".
 
+Important for Autonomous Tasks:
+- If the user asks Jarvis to autonomously figure out a task, install software, write complex code on the machine, or "do whatever it takes" to achieve an objective (e.g. "make a horror lighting", "open instagram and chat"), you must use AUTONOMOUS_TASK.
+
 Allowed actions:
-OPEN_APP, SEARCH_WEB, GET_TIME, SYSTEM_INFO, ESP32_COMMAND, BATCH_DEVICE_COMMAND, DEVICE_STATUS_QUERY, SCENE_COMMAND, ADD_DEVICE, LIST_DEVICES, DELETE_DEVICE, ASSIGN_PIN, EXIT, CHAT, REMEMBER, RECALL, FORGET, LIST_MEMORY, CLEAR_CONVERSATION.
+OPEN_APP, SEARCH_WEB, GET_TIME, SYSTEM_INFO, ESP32_COMMAND, BATCH_DEVICE_COMMAND, DEVICE_STATUS_QUERY, SCENE_COMMAND, ADD_DEVICE, LIST_DEVICES, DELETE_DEVICE, ASSIGN_PIN, EXIT, CHAT, REMEMBER, RECALL, FORGET, LIST_MEMORY, CLEAR_CONVERSATION, AUTONOMOUS_TASK.
 
 Output examples:
+{"action":"AUTONOMOUS_TASK","task":"figure out how to scrape instagram"}
 {"action":"ADD_DEVICE","device_id":"red1","display_name":"red one","type":"light","color":"red","endpoint":"red1","aliases":["red one", "first red"]}
 {"action":"BATCH_DEVICE_COMMAND","devices":["red1","blue"],"command":"off","delay":1}
 {"action":"DELETE_DEVICE","device_id":"red1"}
@@ -105,7 +109,7 @@ def parse_with_ai(user_input: str) -> dict:
             return {"action": "CHAT", "message": user_input}
             
         # 7. If action is not in allowed actions
-        allowed_actions = ["OPEN_APP", "SEARCH_WEB", "GET_TIME", "SYSTEM_INFO", "ESP32_COMMAND", "BATCH_DEVICE_COMMAND", "DEVICE_STATUS_QUERY", "SCENE_COMMAND", "ADD_DEVICE", "LIST_DEVICES", "DELETE_DEVICE", "ASSIGN_PIN", "EXIT", "CHAT", "REMEMBER", "RECALL", "FORGET", "LIST_MEMORY", "CLEAR_CONVERSATION"]
+        allowed_actions = ["OPEN_APP", "SEARCH_WEB", "GET_TIME", "SYSTEM_INFO", "ESP32_COMMAND", "BATCH_DEVICE_COMMAND", "DEVICE_STATUS_QUERY", "SCENE_COMMAND", "ADD_DEVICE", "LIST_DEVICES", "DELETE_DEVICE", "ASSIGN_PIN", "EXIT", "CHAT", "REMEMBER", "RECALL", "FORGET", "LIST_MEMORY", "CLEAR_CONVERSATION", "AUTONOMOUS_TASK"]
         if parsed_json["action"] not in allowed_actions:
             logger.debug(f"AI returned unknown action: {parsed_json['action']}")
             return {"action": "CHAT", "message": user_input}

@@ -372,6 +372,15 @@ class IntentParser:
         if any(text_lower.startswith(p) or p in text_lower for p in DEV_PHRASES):
             return {"action": "DEVELOPER_TASK", "task": text}
 
+        # Autonomous Tasks
+        AUTO_PHRASES = [
+            "figure it out", "do whatever it takes", "make a script to",
+            "write a python script", "scrape", "open instagram and",
+            "find a way to", "download and install"
+        ]
+        if any(p in text_lower for p in AUTO_PHRASES):
+            return {"action": "AUTONOMOUS_TASK", "task": text}
+
         # Local small-talk handling
         if text_lower in ["hi", "hii", "hey", "heyy", "hyy", "hello", "yo", "bro"]:
             return {"action": "CHAT_LOCAL", "response": "Hello Radhin. How can I help?"}

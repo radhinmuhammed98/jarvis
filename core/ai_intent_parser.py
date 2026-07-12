@@ -42,10 +42,15 @@ Important for Autonomous Tasks:
 Important for Firmware:
 - If the user explicitly asks to write code for the ESP32, upload code to the ESP32, flash firmware, or mentions "make a horror lighting" on the hardware, use FLASH_FIRMWARE.
 
+Important for Learned Skills:
+- Jarvis can learn new skills which are stored on disk. If the user asks for a specific task that matches a known skill below, you must use EXECUTE_SKILL.
+- Known skills: {known_skills_str}
+
 Allowed actions:
-OPEN_APP, SEARCH_WEB, GET_TIME, SYSTEM_INFO, ESP32_COMMAND, BATCH_DEVICE_COMMAND, DEVICE_STATUS_QUERY, SCENE_COMMAND, ADD_DEVICE, LIST_DEVICES, DELETE_DEVICE, ASSIGN_PIN, EXIT, CHAT, REMEMBER, RECALL, FORGET, LIST_MEMORY, CLEAR_CONVERSATION, AUTONOMOUS_TASK, FLASH_FIRMWARE.
+OPEN_APP, SEARCH_WEB, GET_TIME, SYSTEM_INFO, ESP32_COMMAND, BATCH_DEVICE_COMMAND, DEVICE_STATUS_QUERY, SCENE_COMMAND, ADD_DEVICE, LIST_DEVICES, DELETE_DEVICE, ASSIGN_PIN, EXIT, CHAT, REMEMBER, RECALL, FORGET, LIST_MEMORY, CLEAR_CONVERSATION, AUTONOMOUS_TASK, FLASH_FIRMWARE, EXECUTE_SKILL.
 
 Output examples:
+{"action":"EXECUTE_SKILL","skill_name":"instagram_dm","args":"message content"}
 {"action":"AUTONOMOUS_TASK","task":"figure out how to scrape instagram"}
 {"action":"ADD_DEVICE","device_id":"red1","display_name":"red one","type":"light","color":"red","endpoint":"red1","aliases":["red one", "first red"]}
 {"action":"BATCH_DEVICE_COMMAND","devices":["red1","blue"],"command":"off","delay":1}
@@ -71,9 +76,15 @@ def parse_with_ai(user_input: str) -> dict:
     logger.info(f"Jarvis is thinking (Intent Parsing)...")
     
     from core.ai_provider import call_ai
+    from core.skill_manager import list_skills
+
+    skills = list_skills()
+    known_skills_str = ", ".join([f"{s['name']} ({s['description']})" for s in skills]) if skills else "None yet."
+
+    formatted_prompt = SYSTEM_PROMPT.replace("{known_skills_str}", known_skills_str)
     
     messages = [
-        {"role": "system", "content": SYSTEM_PROMPT},
+        {"role": "system", "content": formatted_prompt},
         {"role": "user", "content": user_input}
     ]
 
@@ -112,7 +123,7 @@ def parse_with_ai(user_input: str) -> dict:
             return {"action": "CHAT", "message": user_input}
             
         # 7. If action is not in allowed actions
-        allowed_actions = ["OPEN_APP", "SEARCH_WEB", "GET_TIME", "SYSTEM_INFO", "ESP32_COMMAND", "BATCH_DEVICE_COMMAND", "DEVICE_STATUS_QUERY", "SCENE_COMMAND", "ADD_DEVICE", "LIST_DEVICES", "DELETE_DEVICE", "ASSIGN_PIN", "EXIT", "CHAT", "REMEMBER", "RECALL", "FORGET", "LIST_MEMORY", "CLEAR_CONVERSATION", "AUTONOMOUS_TASK", "FLASH_FIRMWARE"]
+        allowed_actions = ["OPEN_APP", "SEARCH_WEB", "GET_TIME", "SYSTEM_INFO", "ESP32_COMMAND", "BATCH_DEVICE_COMMAND", "DEVICE_STATUS_QUERY", "SCENE_COMMAND", "ADD_DEVICE", "LIST_DEVICES", "DELETE_DEVICE", "ASSIGN_PIN", "EXIT", "CHAT", "REMEMBER", "RECALL", "FORGET", "LIST_MEMORY", "CLEAR_CONVERSATION", "AUTONOMOUS_TASK", "FLASH_FIRMWARE", "EXECUTE_SKILL"]
         if parsed_json["action"] not in allowed_actions:
             logger.debug(f"AI returned unknown action: {parsed_json['action']}")
             return {"action": "CHAT", "message": user_input}

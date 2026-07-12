@@ -42,6 +42,7 @@ class CommandExecutor:
             "DEVELOPER_TASK": self.handle_developer_task,
             "AUTONOMOUS_TASK": self.handle_autonomous_task,
             "FLASH_FIRMWARE": self.handle_flash_firmware,
+            "EXECUTE_SKILL": self.handle_execute_skill,
             "REMEMBER": self.handle_remember,
             "RECALL": self.handle_recall,
             "FORGET": self.handle_forget,
@@ -828,6 +829,14 @@ class CommandExecutor:
         if not request:
             return "What would you like the ESP32 to do?"
         return flash_firmware(request)
+
+    def handle_execute_skill(self, intent_data: dict) -> str:
+        from core.skill_manager import execute_skill
+        skill_name = intent_data.get("skill_name")
+        args = intent_data.get("args", "")
+        if not skill_name:
+            return "Which skill should I execute?"
+        return execute_skill(skill_name, args)
 
     def handle_unknown(self, intent_data: dict) -> str:
         return "I'm not sure how to help with that yet."

@@ -19,16 +19,22 @@ Allowed actions:
    - This writes your code to a temporary file and runs it. The output will be fed back to you in the next iteration.
    - Use `subprocess.run(['pip', 'install', 'package_name'])` inside your script if you need to install a module.
    - Always print out the final result or relevant info so it goes to stdout.
-2. `{"action": "DONE", "result": "The final summary of what you achieved for the user."}`
+2. `{"action": "SAVE_SKILL", "skill_name": "instagram_dm", "description": "Sends a DM on Instagram", "code": "...working python code..."}`
+   - USE THIS ONLY ONCE YOU HAVE SUCCESSFULLY CONFIRMED THE CODE WORKS via RUN_PYTHON. This permanently saves the capability so it can be used directly next time.
+3. `{"action": "DONE", "result": "The final summary of what you achieved for the user."}`
    - Use this when the task is complete. The `result` string will be spoken/shown to the user.
-3. `{"action": "FAIL", "reason": "Explanation of why the task is impossible."}`
+4. `{"action": "FAIL", "reason": "Explanation of why the task is impossible."}`
    - Use this if you are stuck after multiple attempts.
 
-If a previous script execution returns an error, write a new script to fix the error.
+If a previous script execution returns an error, write a new script to fix the error. Once a script works and solves the core problem, save it as a skill before calling DONE.
 
 Example Output (RUN_PYTHON):
 ```json
 {"action": "RUN_PYTHON", "code": "import subprocess\nsubprocess.run(['pip', 'install', 'requests'])\nimport requests\nprint('Installed and imported requests!')"}
+```
+Example Output (SAVE_SKILL):
+```json
+{"action": "SAVE_SKILL", "skill_name": "check_weather", "description": "Gets local weather", "code": "import requests\nprint('Weather is sunny!')"}
 ```
 
 Example Output (DONE):
@@ -85,6 +91,17 @@ def execute_autonomous_task(task_description: str, max_iterations: int = 5) -> s
 
         elif action == "FAIL":
             return f"I couldn't complete the task: {action_data.get('reason', 'Unknown reason')}"
+
+        elif action == "SAVE_SKILL":
+            skill_name = action_data.get("skill_name", "unknown_skill")
+            code = action_data.get("code", "")
+            description = action_data.get("description", "Autonomously learned skill")
+
+            from core.skill_manager import save_skill
+            if save_skill(skill_name, code, description):
+                messages.append({"role": "user", "content": f"Skill '{skill_name}' saved successfully. You can now use DONE."})
+            else:
+                messages.append({"role": "user", "content": f"Failed to save skill '{skill_name}'. Check name validity."})
 
         elif action == "RUN_PYTHON":
             code = action_data.get("code", "")

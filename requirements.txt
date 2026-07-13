@@ -9,3 +9,5 @@ sounddevice
 schedule
 chromadb
 sentence-transformers
+pvporcupine
+pvrecorder

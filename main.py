@@ -42,13 +42,18 @@ class Jarvis:
         from core.memory import init_memory
         from core.device_memory import init_device_memory
         from core.control_context import init_control_context
+        from core.semantic_memory import init_semantic_memory
         init_memory()
         init_device_memory()
         init_control_context()
+        init_semantic_memory()
         
         from core.conversation import load_history_from_db
         load_history_from_db(limit=20)
         
+        from core.scheduler import start_scheduler
+        start_scheduler()
+
         self.parser = IntentParser()
         self.executor = CommandExecutor()
         
@@ -161,36 +166,62 @@ class Jarvis:
         input_thread.start()
 
         # ---- Processing loop (main thread) ----
-        empty_retries = 0
         try:
             while not _stop_event.is_set():
                 user_input = get_next_input(timeout=0.1)
 
                 if user_input is None:
-                    # Nothing to process yet — check voice if enabled
-                    if not self.voice_mode and is_voice_input_enabled() and empty_retries < 3:
+                    # Nothing in queue — check voice if enabled
+                    if self.voice_mode or is_voice_input_enabled():
+                        from modules.voice.wake_word import wait_for_wake_word
                         from modules.voice.stt import listen_once
                         from modules.voice.normalizer import normalize_speech_text
+                        from modules.voice.tts import speak
 
-                        engine = os.getenv("JARVIS_STT_ENGINE", "vosk").lower()
-                        if engine == "groq":
-                            from modules.voice.groq_stt import transcribe_with_groq
-                            voice_input = transcribe_with_groq()
-                        else:
-                            voice_input = listen_once()
+                        # Wait for "Jarvis" wake word
+                        if wait_for_wake_word(_stop_event):
+                            # Play an acknowledgment sound or say a quick confirmation
+                            speak("Yes?")
 
-                        if voice_input:
-                            empty_retries = 0
-                            voice_input = normalize_speech_text(voice_input)
-                            print(f"You: {voice_input}")
-                            add_input(voice_input)
-                        else:
-                            empty_retries += 1
+                            # Enter continuous conversation loop
+                            import time
+                            active = True
+                            last_interaction = time.time()
+
+                            while active and not _stop_event.is_set():
+                                # Time out after 10 seconds of silence to go back to wake word mode
+                                if time.time() - last_interaction > 10:
+                                    logger.info("Active voice session timed out.")
+                                    active = False
+                                    continue
+
+                                # Listen for the actual command
+                                voice_input = listen_once()
+                                if voice_input:
+                                    voice_input = normalize_speech_text(voice_input)
+                                    sys.stdout.write("\r\033[K")
+                                    print(f"You (Voice): {voice_input}")
+
+                                    # Process immediately rather than queueing so we can respond fast
+                                    _is_busy.set()
+                                    try:
+                                        result = self._process_input(voice_input)
+                                        if result == "ACTION_EXIT":
+                                            _stop_event.set()
+                                            active = False
+                                    except Exception as e:
+                                        logger.error(f"Error in continuous voice: {e}")
+                                    finally:
+                                        _is_busy.clear()
+                                        last_interaction = time.time() # Reset timeout
+                                else:
+                                    # Heard nothing, wait a bit
+                                    time.sleep(0.5)
+
                     continue
 
                 # We have something to process
                 _is_busy.set()
-                # Try to clear the "You: " prompt line before printing status
                 sys.stdout.write("\r\033[K")
                 print(f"Processing: {user_input}")
                 sys.stdout.write("You: ")
@@ -225,6 +256,10 @@ class Jarvis:
 
         print()
         logger.info("Shutting down Jarvis...")
+        from core.scheduler import stop_scheduler
+        stop_scheduler()
+        from modules.voice.wake_word import cleanup_wake_word
+        cleanup_wake_word()
 
 
 if __name__ == "__main__":

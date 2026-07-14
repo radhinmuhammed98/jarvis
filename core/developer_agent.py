@@ -9,7 +9,7 @@ from core.ai_provider import call_ai
 
 logger = logging.getLogger(__name__)
 
-PROJECT_ROOT = "/home/razi/Desktop/Jarvis"
+PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 
 ALLOWED_PATHS = [
     "core",
@@ -154,7 +154,7 @@ YOUR GOAL:
 Generate full file replacements to implement the requested feature or fix.
 
 PROJECT CONTEXT:
-The project root is `/home/razi/Desktop/Jarvis`.
+The project root is `{PROJECT_ROOT}`.
 Here are the allowed files you can modify:
 {tree}
 

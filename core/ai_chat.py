@@ -77,9 +77,19 @@ def chat_with_ai(user_input: str) -> str:
     
     from core.ai_provider import call_ai
     from core.conversation import get_recent_messages
+    from core.semantic_memory import query_memory
     
-    messages = [{"role": "system", "content": SYSTEM_PROMPT}]
+    # 1. Retrieve relevant long-term memory context
+    relevant_memories = query_memory(user_input, n_results=3)
+    memory_context = ""
+    if relevant_memories:
+        memory_context = "\n\nRelevant past memories/facts:\n- " + "\n- ".join(relevant_memories)
     
+    # 2. Build system prompt
+    dynamic_system_prompt = SYSTEM_PROMPT + memory_context
+    messages = [{"role": "system", "content": dynamic_system_prompt}]
+
+    # 3. Add short-term conversation history
     recent = get_recent_messages(limit=10)
     messages.extend(recent)
 

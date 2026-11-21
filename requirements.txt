@@ -6,3 +6,8 @@ edge-tts
 python-dotenv
 vosk
 sounddevice
+schedule
+chromadb
+sentence-transformers
+pvporcupine
+pvrecorder

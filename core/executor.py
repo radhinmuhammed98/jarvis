@@ -40,6 +40,10 @@ class CommandExecutor:
             "CHAT": self.handle_chat,
             "CHAT_LOCAL": self.handle_chat_local,
             "DEVELOPER_TASK": self.handle_developer_task,
+            "AUTONOMOUS_TASK": self.handle_autonomous_task,
+            "FLASH_FIRMWARE": self.handle_flash_firmware,
+            "EXECUTE_SKILL": self.handle_execute_skill,
+            "SCHEDULE_TASK": self.handle_schedule_task,
             "REMEMBER": self.handle_remember,
             "RECALL": self.handle_recall,
             "FORGET": self.handle_forget,
@@ -213,10 +217,20 @@ class CommandExecutor:
 
     def handle_chat(self, intent_data: dict) -> str:
         from core.ai_chat import chat_with_ai
+        from core.semantic_memory import add_memory
+
         message = intent_data.get("message", "")
         if not message:
             return "I'm listening. How can I help?"
-        return chat_with_ai(message)
+
+        response = chat_with_ai(message)
+
+        # Save interesting conversation exchanges to long-term memory
+        # We only save if the message is substantial enough to be a memory
+        if len(message) > 15:
+            add_memory(f"User said: '{message}'. Jarvis replied: '{response}'", category="conversation")
+
+        return response
 
     def handle_chat_local(self, intent_data: dict) -> str:
         return intent_data.get("response", "I understood you.")
@@ -273,6 +287,8 @@ class CommandExecutor:
 
     def handle_remember(self, intent_data: dict) -> str:
         from core.memory import remember, normalize_key, denormalize_key
+        from core.semantic_memory import add_memory
+
         key = intent_data.get("key", "")
         value = intent_data.get("value", "")
         category = intent_data.get("category", "general")
@@ -280,7 +296,12 @@ class CommandExecutor:
         if not key or not value:
             return "I need both a key and a value to remember something."
             
+        # Save to exact-match memory (SQLite)
         success = remember(key, value, category)
+
+        # Also save to semantic memory (ChromaDB)
+        add_memory(f"Fact: {key} is {value}", category="fact")
+
         if success:
             display_key = denormalize_key(normalize_key(key))
             return f"Got it. I'll remember that {display_key} is {value}."
@@ -812,6 +833,53 @@ class CommandExecutor:
         # This might take a while, so we could potentially return a preliminary message
         # But for now, we block and return the result.
         return run_developer_task(task)
+
+    def handle_autonomous_task(self, intent_data: dict) -> str:
+        from core.autonomous_agent import execute_autonomous_task
+        task = intent_data.get("task", "")
+        if not task:
+            return "What autonomous task would you like me to perform?"
+        return execute_autonomous_task(task)
+
+    def handle_flash_firmware(self, intent_data: dict) -> str:
+        from core.firmware_agent import flash_firmware
+        request = intent_data.get("request") or intent_data.get("task", "")
+        if not request:
+            return "What would you like the ESP32 to do?"
+        return flash_firmware(request)
+
+    def handle_execute_skill(self, intent_data: dict) -> str:
+        from core.skill_manager import execute_skill
+        skill_name = intent_data.get("skill_name")
+        args = intent_data.get("args", "")
+        if not skill_name:
+            return "Which skill should I execute?"
+        return execute_skill(skill_name, args)
+
+    def handle_schedule_task(self, intent_data: dict) -> str:
+        from core.scheduler import schedule_task
+        interval = intent_data.get("interval", 1)
+        unit = intent_data.get("unit", "minutes")
+        run_once = intent_data.get("run_once", False)
+        nested_intent = intent_data.get("nested_intent")
+
+        if not nested_intent:
+            return "I need to know what task you want me to schedule."
+
+        def job_wrapper():
+            # Run the executor on the nested intent
+            logger.info(f"Running scheduled job: {nested_intent.get('action')}")
+            try:
+                self.execute(nested_intent)
+            except Exception as e:
+                logger.error(f"Scheduled job failed: {e}")
+
+        success = schedule_task(job_wrapper, interval, unit, run_once)
+
+        if success:
+            mode = "once" if run_once else "recurring"
+            return f"Scheduled task: {nested_intent.get('action')} every {interval} {unit} ({mode})."
+        return "I couldn't understand the scheduling parameters."
 
     def handle_unknown(self, intent_data: dict) -> str:
         return "I'm not sure how to help with that yet."
